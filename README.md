@@ -182,6 +182,35 @@ Recorded so nobody burns an afternoon on them again.
 | Disabling DXVK via the Bottles toggle | **Invalid test.** The toggle leaves DXVK's DLLs in `system32` with `native,builtin` overrides, so DXVK keeps running. To really disable it you must set `d3d11`/`dxgi`/`d3d9`/`d3d10core` to `builtin`. Doing so removed the keyed-mutex errors (138 → 0) but changed the crash count not at all — same `E_NOTIMPL` underneath. |
 | `CUPS_SERVER` pointed at a dead port | 2 of 3 startups succeeded — no better than baseline, and it disables printing. |
 
+## Runner compatibility
+
+DXVK's wiki notes that D3D11 shared resources need **Proton patches**, so the
+obvious idea is to swap the vanilla runner for a Proton-patched one. It doesn't
+work — every Proton/Staging build tested fails before Fusion draws a window.
+
+| Runner | Base | Result |
+|---|---|---|
+| `sys-wine-11.0` | Wine 11 vanilla | **Works.** The only one that runs Fusion. |
+| `soda-11.0-5` | Wine 11 TkG | `stack overflow` in the Chromium process; Fusion exits |
+| `ge-proton11-5` | Wine 11 Staging | identical `stack overflow`; Fusion exits |
+| `ge-proton10-34` | Wine 10 Staging | won't run — Wine prefixes don't downgrade |
+| `soda-9.0-1` | Wine 9 TkG | crashes `AdskIdentityManager` on launch |
+
+Both Wine 11 Staging-derived builds die the same way, moments after Chromium's
+DevTools listener starts:
+
+```
+err:virtual:virtual_setup_exception stack overflow 1920 bytes
+    addr 0x6ffffff37397 stack 0x10880 (0x10000-0x11000-0x110000)
+```
+
+A 4 KB committed stack overflowing. Vanilla Wine 11 does not do this, which
+points at a Staging patch rather than at Fusion.
+
+Net effect: the runner that can run Fusion has no shared-resource support, and
+the runners with shared-resource support can't run Fusion. That is why the Data
+Panel stays broken.
+
 ## Known issues
 
 **Data Panel and Home tab render black/blank.** The root cause is
