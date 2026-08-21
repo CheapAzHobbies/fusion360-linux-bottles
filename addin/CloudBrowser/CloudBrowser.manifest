@@ -1,0 +1,11 @@
+{
+    "autodeskProduct": "Fusion360",
+    "type": "addin",
+    "id": "cloudbrowser-native-datapanel",
+    "author": "CheapAzHobbies",
+    "description": { "": "Native replacement for the Data Panel, which renders blank under Wine." },
+    "version": "1.0.0",
+    "runOnStartup": true,
+    "supportedOS": "windows|mac",
+    "editEnabled": true
+}

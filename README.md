@@ -244,8 +244,8 @@ setting. Keyed-mutex support landed in Wine 10.18, and there is
 [ongoing work on shared resources via D3DKMT](https://github.com/doitsujin/dxvk/pull/5257),
 so this may improve.
 
-*Workaround for cloud models:* open Fusion Team in a browser, download the `.f3d`,
-and use File → Open on the local file.
+*Workarounds:* the `addin/CloudBrowser` add-in above, or open Fusion Team in a
+browser, download the `.f3d`, and use File → Open on the local file.
 
 **Startup hangs roughly 1 launch in 3**, at `performInitialization1 START` in
 `AppData/Local/Autodesk/Neutron Platform/logs/AppLogFile*.log`. All threads sleep;
@@ -253,11 +253,66 @@ nothing is spinning. A CUPS connection to `[::1]:631` is open when it happens an
 there is an offline USB printer on this machine, but forcing CUPS lookups to fail
 did not reliably fix it, so the link is unproven. Kill and relaunch.
 
+
+## Working around the Data Panel: `addin/CloudBrowser`
+
+The Data Panel can't be fixed, but it doesn't have to be the only way in. Fusion's
+**Python API reaches the same cloud data without touching Chromium**, and Fusion
+command dialogs are native Qt rather than web views. `addin/CloudBrowser` is a
+small add-in that walks your hubs, projects and folders and lets you pick a
+design from plain dropdowns.
+
+Install by copying the folder to:
+
+```
+<bottle>/drive_c/users/<USER>/AppData/Roaming/Autodesk/Autodesk Fusion 360/API/AddIns/
+```
+
+It loads on startup and adds a **Cloud Files** button under **UTILITIES → ADD-INS**.
+
+### Two things that make it work
+
+**The data service isn't ready when add-ins load.** Enumerating at `run()` always
+fails with:
+
+```
+InternalValidationError : status.isOk() && files
+```
+
+Roughly 45 seconds later the identical call succeeds. The add-in therefore does
+its work on demand, when you open the dialog, rather than at load time. It also
+schedules one deferred scan into `cloudbrowser.log` so you can confirm the data
+path works without opening any UI.
+
+**Every folder loads asynchronously, not just the project root.** A first miss
+means "not fetched yet", not "empty". `retry()` pumps `adsk.doEvents()` and tries
+again for up to ten seconds per folder, which is the difference between finding
+your designs and reporting an empty project.
+
+### Reading `cloudbrowser.log`
+
+The log sits next to the add-in and tells you what the API can actually see:
+
+```
+--- deferred scan ---
+hubs: 1
+  hub "<name>": 2 projects
+    loaded "Default Project": 0 files, 0 folders at root
+    loaded "Assets": 0 files, 6 folders at root
+```
+
+Worth knowing: a brand-new Fusion account really does look like this. `Assets`
+contains only Autodesk's own system folders — `CAMStockMaterials`,
+`NestLabelsTemplates`, `NestMaterials`, and similar — and `Default Project` is
+empty. If your log looks like the above, the add-in is working correctly and
+there is simply nothing saved to the cloud yet.
+
 ## Files
 
 - `scripts/adskidmgr-handler.sh` — `adskidmgr://` scheme handler; reads the runner from `bottle.yml`
 - `scripts/fusion360` — launcher that starts the bottle's copy via `bottles-cli`
 - `scripts/apply-wine-fixes.sh` — applies the registry changes from §5
+- `addin/CloudBrowser/` — native Data Panel replacement (see above)
 
 ## Useful log locations
 
