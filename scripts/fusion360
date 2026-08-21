@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Launch Autodesk Fusion from the Bottles Fusion360 bottle.
+# Uses the bottle's own runner/settings via bottles-cli so the environment
+# matches what the adskidmgr:// login handler expects.
+set -euo pipefail
+
+BOTTLE_DIR="$HOME/.var/app/com.usebottles.bottles/data/bottles/bottles/Fusion360"
+
+EXE=$(find "$BOTTLE_DIR/drive_c" -name Fusion360.exe -printf '%T@ %p\n' 2>/dev/null \
+      | sort -rn | head -1 | cut -d' ' -f2-)
+
+if [[ -z "$EXE" ]]; then
+    echo "Fusion360.exe not found in the Fusion360 bottle." >&2
+    exit 1
+fi
+
+exec flatpak run --command=bottles-cli com.usebottles.bottles run -b Fusion360 -e "$EXE"
