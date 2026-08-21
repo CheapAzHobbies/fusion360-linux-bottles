@@ -18,6 +18,7 @@ weren't.
 | 3D viewport, grid, ViewCube | **Home tab renders blank** |
 | Full ribbon, Browser tree, timeline | Notification banner renders as colour stripes |
 | Sketching / modelling | Startup hangs intermittently (~1 in 3) |
+| Opens straight to the design workspace | |
 | No debugger popups | |
 
 Everything still broken is Chromium-backed UI. Fusion's own renderer is fine;
@@ -33,7 +34,7 @@ NVIDIA RTX 3060 Ti, driver 580.173.02, X11
 DXVK 2.7.1
 ```
 
-## The five changes that mattered
+## The changes that mattered
 
 ### 1. Wine 11, not Wine 9
 
@@ -152,6 +153,29 @@ HKCU\Software\Wine\WineDbg\ShowCrashDialog = dword:0
 Note the semantics are the reverse of what you'd guess: `Auto="0"` means
 *prompt before debugging* — that's what produces the "do you want to debug?"
 dialog. `Auto="1"` is the silent setting.
+
+### 6. Skip the Home tab at startup
+
+The Home tab is a Chromium view, so it renders blank — Fusion opens to a white
+window and only draws once you click the design tab. You can't fix the rendering
+(see Known issues), but you can stop Fusion opening it in the first place, which
+removes the symptom entirely.
+
+The setting lives in the **user-specific** options file, not the machine one:
+
+`.../Neutron Platform/Options/<USER_ID>/NGlobalOptions.xml`  (UTF-16)
+
+```xml
+<HometabAsStartupExperience UserName="Show Home tab at startup" Value="0"/>
+```
+
+Fusion then opens directly into the design workspace. Window title goes from
+`Home - Autodesk Fusion` to `Untitled - Autodesk Fusion`, which is the quickest
+way to confirm it took.
+
+> There is also a `DontWantAppHomeAsStartUpScreen` in `GeneralOptionGroup` in
+> `NMachineSpecificOptions.xml`. Setting it does nothing — `HometabAsStartupExperience`
+> is the one that works.
 
 ## Virtual desktop
 
